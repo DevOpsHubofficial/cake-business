@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/customers")
-@CrossOrigin(origins = "*")
 public class CustomerController {
 
     private final CustomerService customerService;
@@ -74,4 +73,4 @@ public class CustomerController {
 
         return ResponseEntity.noContent().build();
     }
-}
+}

@@ -12,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/special-offers")
-@CrossOrigin(origins = "*")
 public class SpecialOfferController {
 
     private final SpecialOfferService specialOfferService;

@@ -1,5 +1,5 @@
 const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+    import.meta.env.VITE_API_BASE_URL || "https://cake-business-api.onrender.com/api";
 
 export const getProducts = async () => {
 
@@ -88,4 +88,4 @@ export const createOrderItem = async (orderItemData) => {
     }
 
     return response.json();
-};
+};

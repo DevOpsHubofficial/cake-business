@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { getOrderById, getOrderItemsByOrderId, updateOrderStatus } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 
 const STATUS_CONFIG = {
   PENDING: { label: "Pending", badgeClass: "status-badge-pending", icon: "⏳" },
@@ -27,6 +28,12 @@ function AdminOrderDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/admin/login");
+  };
 
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
@@ -132,6 +139,13 @@ function AdminOrderDetails() {
           <Link to="/admin" className="btn-secondary-outline">
             📊 Dashboard
           </Link>
+          <button
+            type="button"
+            className="btn-logout"
+            onClick={handleLogout}
+          >
+            🚪 Logout
+          </button>
         </div>
       </div>
 

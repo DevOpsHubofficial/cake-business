@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getAllOrders, updateOrderStatus } from "../services/api";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 
 const STATUS_CONFIG = {
   PENDING: { label: "Pending", badgeClass: "status-badge-pending", icon: "⏳" },
@@ -33,23 +34,35 @@ function AdminOrders() {
 
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/admin/login");
+  };
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setError("");
       const data = await getAllOrders();
-      const sorted = Array.isArray(data)
-        ? data.sort((a, b) => (b.id || 0) - (a.id || 0))
-        : [];
+      const orderList = Array.isArray(data)
+        ? data
+        : (data && Array.isArray(data.orders) ? data.orders : []);
+      const sorted = [...orderList].sort((a, b) => (b.id || 0) - (a.id || 0));
       setOrders(sorted);
     } catch (err) {
       console.error("Failed to fetch orders:", err);
-      setError("Unable to load orders from the server.");
+      if (err.message === "Unauthorized") {
+        setError("Session expired or unauthorized. Please log in again.");
+      } else {
+        setError(err.message || "Unable to load orders from the server.");
+      }
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchOrders();
@@ -115,6 +128,13 @@ function AdminOrders() {
               disabled={loading}
             >
               🔄 {loading ? "Refreshing..." : "Refresh Orders"}
+            </button>
+            <button
+              type="button"
+              className="btn-logout"
+              onClick={handleLogout}
+            >
+              🚪 Logout
             </button>
           </div>
         </div>

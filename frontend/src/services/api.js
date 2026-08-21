@@ -1,5 +1,42 @@
 const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "https://cake-business-api.onrender.com/api";
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+export const adminLogin = async (username, password) => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Login failed");
+    }
+    return response.json();
+};
+
+const getToken = () =>
+    sessionStorage.getItem("admin_jwt_token") ||
+    localStorage.getItem("admin_jwt_token");
+
+const authFetch = async (url, options = {}) => {
+    const token = getToken();
+    const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401 || response.status === 403) {
+        throw new Error("Unauthorized");
+    }
+    if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+    }
+    return response.json();
+};
+
 
 export const getProducts = async () => {
 
@@ -91,47 +128,21 @@ export const createOrderItem = async (orderItemData) => {
 };
 
 export const getAllOrders = async () => {
-    const response = await fetch(`${API_BASE_URL}/orders`);
-
-    if (!response.ok) {
-        throw new Error("Failed to fetch orders");
-    }
-
-    return response.json();
+    return authFetch(`${API_BASE_URL}/orders`);
 };
 
 export const updateOrderStatus = async (orderId, status) => {
-    const response = await fetch(
+    return authFetch(
         `${API_BASE_URL}/orders/${orderId}/status?status=${encodeURIComponent(status)}`,
-        {
-            method: "PUT",
-        }
+        { method: "PUT" }
     );
-
-    if (!response.ok) {
-        throw new Error("Failed to update order status");
-    }
-
-    return response.json();
 };
 
 export const getOrderById = async (orderId) => {
-    const response = await fetch(`${API_BASE_URL}/orders/${orderId}`);
-
-    if (!response.ok) {
-        throw new Error("Failed to fetch order details");
-    }
-
-    return response.json();
+    return authFetch(`${API_BASE_URL}/orders/${orderId}`);
 };
 
 export const getOrderItemsByOrderId = async (orderId) => {
-    const response = await fetch(`${API_BASE_URL}/order-items/order/${orderId}`);
-
-    if (!response.ok) {
-        throw new Error("Failed to fetch order items");
-    }
-
-    return response.json();
+    return authFetch(`${API_BASE_URL}/order-items/order/${orderId}`);
 };
 

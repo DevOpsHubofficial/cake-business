@@ -39,6 +39,9 @@ function Footer() {
             <li>
               <Link to="/cart">My Shopping Cart</Link>
             </li>
+            <li>
+              <Link to="/admin">👑 Admin Dashboard</Link>
+            </li>
           </ul>
         </div>
 

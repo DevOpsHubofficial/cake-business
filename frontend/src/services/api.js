@@ -89,3 +89,49 @@ export const createOrderItem = async (orderItemData) => {
 
     return response.json();
 };
+
+export const getAllOrders = async () => {
+    const response = await fetch(`${API_BASE_URL}/orders`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch orders");
+    }
+
+    return response.json();
+};
+
+export const updateOrderStatus = async (orderId, status) => {
+    const response = await fetch(
+        `${API_BASE_URL}/orders/${orderId}/status?status=${encodeURIComponent(status)}`,
+        {
+            method: "PUT",
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to update order status");
+    }
+
+    return response.json();
+};
+
+export const getOrderById = async (orderId) => {
+    const response = await fetch(`${API_BASE_URL}/orders/${orderId}`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch order details");
+    }
+
+    return response.json();
+};
+
+export const getOrderItemsByOrderId = async (orderId) => {
+    const response = await fetch(`${API_BASE_URL}/order-items/order/${orderId}`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch order items");
+    }
+
+    return response.json();
+};
+

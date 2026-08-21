@@ -1,6 +1,43 @@
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
+// ── Auth helpers ──────────────────────────────────────────────────────────────
+
+export const adminLogin = async (username, password) => {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Login failed");
+    }
+    return response.json();
+};
+
+const getToken = () =>
+    sessionStorage.getItem("admin_jwt_token") ||
+    localStorage.getItem("admin_jwt_token");
+
+const authFetch = async (url, options = {}) => {
+    const token = getToken();
+    const headers = {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const response = await fetch(url, { ...options, headers });
+    if (response.status === 401 || response.status === 403) {
+        throw new Error("Unauthorized");
+    }
+    if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`);
+    }
+    return response.json();
+};
+
+
 export const getProducts = async () => {
 
     const response = await fetch(
@@ -88,4 +125,24 @@ export const createOrderItem = async (orderItemData) => {
     }
 
     return response.json();
-};
+};
+
+export const getAllOrders = async () => {
+    return authFetch(`${API_BASE_URL}/orders`);
+};
+
+export const updateOrderStatus = async (orderId, status) => {
+    return authFetch(
+        `${API_BASE_URL}/orders/${orderId}/status?status=${encodeURIComponent(status)}`,
+        { method: "PUT" }
+    );
+};
+
+export const getOrderById = async (orderId) => {
+    return authFetch(`${API_BASE_URL}/orders/${orderId}`);
+};
+
+export const getOrderItemsByOrderId = async (orderId) => {
+    return authFetch(`${API_BASE_URL}/order-items/order/${orderId}`);
+};
+

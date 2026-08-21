@@ -1,0 +1,10 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5433/cake_business
+    username: postgres
+    password: Ibryasfah@032024P
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true

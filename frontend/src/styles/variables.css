@@ -1,0 +1,77 @@
+/* ==========================================================================
+   DESIGN TOKENS & SYSTEM VARIABLES
+   Theme: Light Yellow (#FEF9E7, #FFF4CC) + Blue Primary (#1E40AF, #2563EB, #3B82F6)
+   ========================================================================== */
+
+:root {
+  /* Primary & Accent Palette (Blue & Warm Gold/Light Yellow) */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
+
+  --yellow-50: #fefce8;
+  --yellow-100: #fef9c3;
+  --yellow-200: #fef08a;
+  --yellow-300: #fde047;
+  --yellow-400: #facc15;
+  --yellow-500: #eab308;
+  --yellow-600: #ca8a04;
+
+  /* Theme Backgrounds */
+  --bg-page: #fdfaf3;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-warm-tint: #fef8e7;
+  --bg-blue-tint: #f0f7ff;
+  --bg-card: #ffffff;
+
+  /* Text & Foreground */
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+  --text-accent: #1d4ed8;
+
+  /* Borders & Dividers */
+  --border-light: rgba(226, 232, 240, 0.85);
+  --border-yellow: rgba(250, 204, 21, 0.4);
+  --border-blue: rgba(37, 99, 235, 0.15);
+
+  /* Gradients */
+  --grad-hero: linear-gradient(135deg, #fffdf2 0%, #fef3c7 40%, #e0f2fe 100%);
+  --grad-primary: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --grad-yellow: linear-gradient(135deg, #fef08a 0%, #fde047 100%);
+  --grad-gold-accent: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --grad-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+
+  /* Shadows */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 4px 12px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 10px 25px -4px rgba(30, 58, 138, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 20px 35px -5px rgba(30, 58, 138, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+  --shadow-glow-yellow: 0 8px 24px -4px rgba(250, 204, 21, 0.35);
+  --shadow-glow-blue: 0 8px 24px -4px rgba(37, 99, 235, 0.35);
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+
+  /* Layout */
+  --container-max: 1240px;
+  --container-pad: 24px;
+  --header-height: 76px;
+}

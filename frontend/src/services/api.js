@@ -1,0 +1,91 @@
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+
+export const getProducts = async () => {
+
+    const response = await fetch(
+        `${API_BASE_URL}/products`
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch products");
+    }
+
+    return response.json();
+};
+
+
+export const getProductById = async (id) => {
+
+    const response = await fetch(
+        `${API_BASE_URL}/products/${id}`
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch product");
+    }
+
+    return response.json();
+};
+
+
+export const getCategories = async () => {
+
+    const response = await fetch(
+        `${API_BASE_URL}/categories`
+    );
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch categories");
+    }
+
+    return response.json();
+};
+
+export const createGuestCustomer = async (customerData) => {
+    const response = await fetch(`${API_BASE_URL}/customers/guest`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(customerData),
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to create or retrieve customer");
+    }
+
+    return response.json();
+};
+
+export const createOrder = async (orderData) => {
+    const response = await fetch(`${API_BASE_URL}/orders`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderData),
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to create order");
+    }
+
+    return response.json();
+};
+
+export const createOrderItem = async (orderItemData) => {
+    const response = await fetch(`${API_BASE_URL}/order-items`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(orderItemData),
+    });
+
+    if (!response.ok) {
+        throw new Error("Failed to create order item");
+    }
+
+    return response.json();
+};

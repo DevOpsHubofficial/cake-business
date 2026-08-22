@@ -15,6 +15,7 @@
 html {
   scroll-behavior: smooth;
   font-size: 16px;
+  overflow-x: hidden;
 }
 
 body {
@@ -23,6 +24,7 @@ body {
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -160,17 +162,25 @@ button {
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-yellow);
   transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  /* Needed so the mobile drawer (position:absolute) clips to header width */
+  position: sticky; /* keep sticky above */
+}
+
+/* Wrapper needed for the absolute-positioned mobile drawer */
+.site-header-inner {
+  position: relative;
 }
 
 .header-container {
   max-width: var(--container-max);
-  height: 100%;
+  height: var(--header-height);
   margin: 0 auto;
   padding: 0 var(--container-pad);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
+  position: relative; /* anchor for absolute mobile drawer */
 }
 
 /* Logo */
@@ -329,14 +339,18 @@ button {
 /* Mobile Nav Drawer */
 .mobile-nav-drawer {
   display: none;
-  position: absolute;
-  top: 100%;
+  position: fixed;
+  top: var(--header-height);
   left: 0;
+  right: 0;
   width: 100%;
   background: #ffffff;
   border-bottom: 2px solid var(--yellow-400);
   box-shadow: var(--shadow-lg);
   padding: 16px var(--container-pad) 24px;
+  z-index: 999;
+  max-height: calc(100vh - var(--header-height));
+  overflow-y: auto;
 }
 
 .mobile-nav-content {
@@ -370,6 +384,8 @@ button {
   border-bottom: 1px solid var(--border-yellow);
   padding: 60px var(--container-pad) 70px;
   overflow: hidden;
+  /* Prevent horizontal scroll on mobile */
+  max-width: 100%;
 }
 
 .hero-grid-wrapper {
@@ -432,6 +448,7 @@ button {
   gap: 16px;
   flex-wrap: wrap;
   margin-bottom: 36px;
+  width: 100%;
 }
 
 .hero-perks-row {
@@ -592,10 +609,28 @@ button {
 .category-filter-container {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 40px;
+  /* Allow horizontal scroll on very small screens if pills overflow */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 4px; /* visual breathing room for scroll indicator */
+}
+
+/* On wider screens center them */
+@media (min-width: 541px) {
+  .category-filter-container {
+    justify-content: center;
+    overflow-x: visible;
+  }
+}
+
+.category-pill-btn {
+  scroll-snap-align: start;
+  flex-shrink: 0;
 }
 
 .category-pill-btn {
@@ -609,6 +644,7 @@ button {
   box-shadow: var(--shadow-xs);
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .category-pill-btn:hover {
@@ -669,7 +705,7 @@ button {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
-  min-height: 230px;
+  /* Remove fixed min-height so aspect-ratio governs on mobile */
   background: var(--yellow-50);
   overflow: hidden;
 }
@@ -793,6 +829,7 @@ button {
   gap: 12px;
   padding-top: 16px;
   border-top: 1px solid var(--border-light);
+  flex-wrap: wrap;
 }
 
 .product-price-wrapper {
@@ -829,6 +866,9 @@ button {
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
+  /* Prevent button from causing card overflow on narrow 2-col grids */
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .add-to-cart-btn:hover:not(:disabled) {
@@ -926,6 +966,7 @@ button {
   justify-content: space-between;
   gap: 32px;
   box-shadow: var(--shadow-lg);
+  flex-wrap: wrap; /* prevent overflow on narrow screens before media query kicks in */
 }
 
 .celebration-cta-text {
@@ -1015,6 +1056,8 @@ button {
   grid-template-columns: 1fr 1.15fr;
   gap: 54px;
   align-items: flex-start;
+  /* Prevent overflow on mid-range screens */
+  min-width: 0;
 }
 
 .details-image-frame {
@@ -1024,7 +1067,10 @@ button {
   overflow: hidden;
   border: 2px solid var(--yellow-200);
   box-shadow: var(--shadow-md);
-  height: 480px;
+  /* Use aspect-ratio instead of a fixed height for fluidity */
+  aspect-ratio: 4 / 3;
+  height: auto;
+  max-height: 480px;
 }
 
 .details-image-frame img {
@@ -1116,7 +1162,7 @@ button {
 
 .details-specs-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 14px;
   margin-bottom: 32px;
 }
@@ -1424,7 +1470,7 @@ button {
 
 .cart-layout-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr min(380px, 36%);
   gap: 36px;
   align-items: flex-start;
 }
@@ -1460,6 +1506,8 @@ button {
   align-items: center;
   padding: 20px 0;
   border-bottom: 1px solid var(--border-light);
+  /* Prevent any cell from overflowing */
+  min-width: 0;
 }
 
 .cart-row-info {
@@ -1821,7 +1869,7 @@ button {
 
 .checkout-layout-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr min(380px, 36%);
   gap: 36px;
   align-items: flex-start;
 }
@@ -2240,6 +2288,9 @@ button {
   display: grid;
   grid-template-columns: 1.4fr 0.9fr 0.9fr 1.2fr;
   gap: 48px;
+  /* Prevent column text from overflowing at mid-range widths */
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer-logo {
@@ -2357,6 +2408,12 @@ button {
   gap: 16px;
   font-size: 0.85rem;
   color: #6b7280;
+}
+
+/* Copyright text: prevent long strings from overflowing on small screens */
+.copyright-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .footer-legal-links {
@@ -2482,6 +2539,7 @@ textarea:focus-visible {
    RESPONSIVE DESIGN (Mobile, Tablet, Desktop)
    ========================================================================== */
 
+/* ── Tablet & small desktop: ≤ 1024px ─────────────────────────── */
 @media (max-width: 1024px) {
   .hero-grid-wrapper {
     grid-template-columns: 1fr;
@@ -2501,8 +2559,16 @@ textarea:focus-visible {
     justify-content: center;
   }
 
+  /* Ensure hero CTA buttons don't overflow side-by-side */
+  .btn-primary-blue,
+  .btn-secondary-outline {
+    flex: 1 1 auto;
+    max-width: 260px;
+  }
+
+  /* Features: 2-col at tablet (3→2 is gentler than 3→1) */
   .features-grid-3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
   }
 
@@ -2517,15 +2583,28 @@ textarea:focus-visible {
   }
 
   .details-image-frame {
-    height: 380px;
+    aspect-ratio: 16 / 9;
+    max-height: 380px;
+  }
+
+  /* Cart & Checkout: switch summary panel below items at tablet */
+  .cart-layout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkout-layout-grid {
+    grid-template-columns: 1fr;
   }
 }
 
+/* ── Tablet portrait: ≤ 768px ──────────────────────────────────── */
 @media (max-width: 768px) {
   :root {
     --header-height: 68px;
+    --container-pad: 16px;
   }
 
+  /* Header */
   .desktop-nav {
     display: none;
   }
@@ -2538,10 +2617,37 @@ textarea:focus-visible {
     display: block;
   }
 
-  .cart-layout-grid {
+  /* Hide cart label text on mobile to avoid overflow */
+  .cart-label {
+    display: none;
+  }
+
+  /* Hero section */
+  .hero-section {
+    padding: 40px var(--container-pad) 50px;
+  }
+
+  .hero-main-title {
+    font-size: clamp(2rem, 7vw, 2.8rem);
+  }
+
+  /* Limit hero description width on tablet so it doesn't span too wide */
+  .hero-description {
+    max-width: 100%;
+  }
+
+  /* Products grid: 2 columns at tablet */
+  .products-grid-layout {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  /* Features: 1-col at mobile */
+  .features-grid-3 {
     grid-template-columns: 1fr;
   }
 
+  /* Cart table: hide header, reflow rows */
   .cart-items-header {
     display: none;
   }
@@ -2559,26 +2665,185 @@ textarea:focus-visible {
     display: block;
   }
 
+  /* Cart item cards: add padding between rows */
+  .cart-items-section {
+    padding: 16px;
+  }
+
+  /* Celebration CTA */
   .celebration-cta-card {
     flex-direction: column;
-    padding: 32px 24px;
+    padding: 28px 20px;
     text-align: center;
   }
 
+  .celebration-cta-action {
+    width: 100%;
+  }
+
+  .btn-cta-whatsapp {
+    white-space: normal;
+    text-align: center;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Product details */
   .details-specs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Checkout form */
+  .form-row-2 {
     grid-template-columns: 1fr;
+  }
+
+  /* Payment options: single column on mobile */
+  .payment-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Admin: control bar and search */
+  .admin-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table-controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .table-search-box {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Admin order details */
+  .order-status-controller {
+    align-items: flex-start;
+  }
+
+  /* Admin header banner */
+  .admin-header-banner {
+    padding: 24px 20px;
+  }
+
+  /* Footer section padding */
+  .footer-container {
+    padding: 48px var(--container-pad) 36px;
+  }
+
+  /* Section padding reduction */
+  .featured-section,
+  .collection-section {
+    padding: 36px var(--container-pad);
+  }
+
+  .features-section {
+    padding: 48px var(--container-pad);
+  }
+
+  .celebration-cta-section {
+    padding: 40px var(--container-pad) 56px;
   }
 }
 
+/* ── Mobile: ≤ 540px ───────────────────────────────────────────── */
 @media (max-width: 540px) {
+  :root {
+    --container-pad: 14px;
+  }
+
+  /* Hero */
+  .hero-section {
+    padding: 28px var(--container-pad) 36px;
+  }
+
+  .hero-description {
+    font-size: 0.98rem;
+    max-width: 100%;
+  }
+
+  /* Hide the hero showcase card on small phones to keep hero compact */
+  .hero-visual-card {
+    display: none;
+  }
+
+  /* Hero CTA buttons: stack vertically on small phones */
+  .hero-cta-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-primary-blue,
+  .btn-secondary-outline {
+    max-width: 100%;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Products: single column on small phones */
+  .products-grid-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Product card image: let aspect-ratio govern, remove min-height */
+  .product-card-image-wrap {
+    min-height: unset;
+  }
+
+  /* Product card: full-width layout improvements */
+  .product-card-content {
+    padding: 16px;
+  }
+
+  .product-card-title {
+    font-size: 1.1rem;
+  }
+
+  /* Footer */
   .footer-container {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
+    padding: 40px var(--container-pad) 28px;
   }
 
   .footer-bottom-container {
     flex-direction: column;
     text-align: center;
+    gap: 10px;
+  }
+
+  .footer-whatsapp-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .footer-trust-chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Product details */
+  .product-details-wrapper {
+    padding: 20px var(--container-pad) 60px;
+  }
+
+  .details-breadcrumb {
+    font-size: 0.82rem;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .details-title {
+    font-size: clamp(1.6rem, 6vw, 2rem);
   }
 
   .details-actions-row {
@@ -2590,8 +2855,167 @@ textarea:focus-visible {
     width: 100%;
   }
 
-  .products-grid-layout {
+  .details-specs-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .details-image-frame {
+    aspect-ratio: 4 / 3;
+    max-height: 260px;
+  }
+
+  /* Customization panel on mobile */
+  .customization-panel {
+    padding: 16px;
+  }
+
+  /* Cart page */
+  .cart-page-container {
+    padding: 20px var(--container-pad) 60px;
+  }
+
+  .cart-page-title {
+    font-size: clamp(1.6rem, 6vw, 2rem);
+  }
+
+  /* Cart row: full card stacked layout on tiny phones */
+  .cart-row-item {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 0;
+  }
+
+  /* Cart stepper row: align nicely when stacked */
+  .cart-row-item .cart-row-info {
+    width: 100%;
+  }
+
+  .cart-row-item .cart-row-stepper {
+    width: fit-content;
+  }
+
+  /* Show subtotal label on mobile since header is hidden */
+  .cart-row-total::before {
+    content: 'Subtotal: ';
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  /* Checkout page */
+  .checkout-page-container {
+    padding: 20px var(--container-pad) 60px;
+  }
+
+  .checkout-page-title {
+    font-size: clamp(1.6rem, 6vw, 2rem);
+  }
+
+  .form-card-group {
+    padding: 16px 14px;
+  }
+
+  /* Order success card */
+  .order-success-card {
+    padding: 28px 16px;
+  }
+
+  .success-title {
+    font-size: 1.6rem;
+  }
+
+  .success-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .success-row strong {
+    text-align: left;
+  }
+
+  /* Admin KPI: 1 column on tiny phones */
+  .admin-kpi-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Admin table: ensure horizontal scroll works */
+  .admin-table-section {
+    padding: 14px 12px;
+  }
+
+  .admin-page-container {
+    padding: 24px var(--container-pad) 60px;
+  }
+
+  /* Category pills: smaller touch targets on tiny screens */
+  .category-pill-btn {
+    font-size: 0.85rem;
+    padding: 8px 14px;
+  }
+
+  /* Size selector full-width on mobile */
+  .size-selector-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Section padding */
+  .featured-section,
+  .collection-section {
+    padding: 28px var(--container-pad);
+  }
+
+  .features-section {
+    padding: 36px var(--container-pad);
+  }
+
+  /* CTA section */
+  .celebration-cta-section {
+    padding: 28px var(--container-pad) 40px;
+  }
+
+  .celebration-cta-card {
+    border-radius: var(--radius-lg);
+    padding: 24px 16px;
+  }
+
+  /* Hero perks: wrap nicely */
+  .hero-perks-row {
+    gap: 14px;
+  }
+
+  .perk-text {
+    font-size: 0.82rem;
+  }
+
+  /* Modal: full-width on mobile */
+  .order-modal-dialog {
+    border-radius: var(--radius-lg);
+    max-height: 95vh;
+  }
+
+  .order-modal-header,
+  .order-modal-body,
+  .order-modal-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Toast on mobile */
+  .toast-item {
+    min-width: unset;
+    width: 100%;
+  }
+
+  /* Admin order details nav row */
+  .details-nav-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .order-details-card {
+    padding: 20px 16px;
   }
 }
 

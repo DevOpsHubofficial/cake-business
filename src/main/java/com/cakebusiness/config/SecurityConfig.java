@@ -50,6 +50,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/customers/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/order-items").permitAll()
+                .requestMatchers("/api/payment/**").permitAll()
 
                 // Admin-only: list/view/update orders and order items
                 .requestMatchers(HttpMethod.GET, "/api/orders/**").hasRole("ADMIN")

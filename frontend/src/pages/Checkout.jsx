@@ -3,7 +3,14 @@ import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useToast } from "../context/ToastContext";
 import { generateWhatsAppOrderMessage, getWhatsAppOrderUrl } from "../utils/whatsappOrder";
-import { createGuestCustomer, createOrder, createOrderItem } from "../services/api";
+import {
+  createGuestCustomer,
+  createOrder,
+  createOrderItem,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+} from "../services/api";
+import { openRazorpayModal } from "../utils/razorpay";
 
 function Checkout() {
   const { cart, total, clearCart } = useCart();
@@ -84,17 +91,149 @@ function Checkout() {
       return;
     }
 
-    if (formData.paymentMethod === "online_gateway") {
-      addToast(
-        "Online Payment Gateway sandbox is ready. Connecting payment processor in the next phase.",
-        "info",
-        4500
-      );
-    }
-
     setIsSubmitting(true);
 
-    // 1. Persist to PostgreSQL via Backend APIs
+    // ── 1. ONLINE PAYMENT FLOW (RAZORPAY TEST MODE) ──────────────────────────
+    if (formData.paymentMethod === "online_gateway") {
+      let dbOrder = null;
+      try {
+        // Step 1: Create or find customer in database
+        const customer = await createGuestCustomer({
+          name: formData.fullName.trim(),
+          phone: formData.phone.trim(),
+          address: formData.address.trim(),
+        });
+
+        // Step 2: Create DB Order with PENDING status
+        const fullDeliveryAddress = formData.landmark
+          ? `${formData.address.trim()}, Near: ${formData.landmark.trim()}`
+          : formData.address.trim();
+
+        const orderPayload = {
+          customer: { id: customer.id },
+          deliveryAddress: fullDeliveryAddress,
+          subtotal: total,
+          deliveryFee: 0,
+          discount: 0,
+          notes: [
+            `Delivery Date: ${formData.deliveryDate} (${formData.deliveryTime})`,
+            formData.customMessage ? `Cake Message: "${formData.customMessage}"` : "",
+            formData.instructions ? `Instructions: ${formData.instructions}` : "",
+            `Payment: Razorpay Online`,
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        };
+
+        dbOrder = await createOrder(orderPayload);
+
+        // Step 3: Create Order Items in DB
+        if (dbOrder && dbOrder.id) {
+          await Promise.all(
+            cart.map((item) =>
+              createOrderItem({
+                orderId: dbOrder.id,
+                productId: item.id,
+                quantity: Number(item.quantity || 1),
+                sizeLabel: item.selectedSize?.label || "",
+                unitPrice: Number(item.price || 0),
+              })
+            )
+          );
+        }
+
+        // Step 4: Request backend to create Razorpay Order
+        const razorpayOrder = await createRazorpayOrder({
+          amount: total,
+          orderId: dbOrder?.id,
+          orderNumber: dbOrder?.orderNumber,
+          customerName: formData.fullName.trim(),
+          customerPhone: formData.phone.trim(),
+        });
+
+        // Step 5: Launch Razorpay Checkout Modal
+        await openRazorpayModal({
+          keyId: razorpayOrder.keyId,
+          amount: razorpayOrder.amountInPaise,
+          currency: razorpayOrder.currency || "INR",
+          name: razorpayOrder.companyName || "Brownie Hub",
+          description: `Order #${dbOrder?.orderNumber || "New"} Payment`,
+          orderId: razorpayOrder.razorpayOrderId,
+          prefill: {
+            name: formData.fullName.trim(),
+            contact: formData.phone.trim(),
+          },
+          notes: {
+            dbOrderId: dbOrder?.id?.toString(),
+            orderNumber: dbOrder?.orderNumber || "",
+          },
+          onSuccess: async (paymentResponse) => {
+            try {
+              addToast("Verifying payment with bank...", "info", 3000);
+              // Server-side signature verification
+              const verifyRes = await verifyRazorpayPayment({
+                razorpayOrderId: paymentResponse.razorpayOrderId,
+                razorpayPaymentId: paymentResponse.razorpayPaymentId,
+                razorpaySignature: paymentResponse.razorpaySignature,
+                dbOrderId: dbOrder?.id,
+              });
+
+              if (verifyRes.success) {
+                // Generate WhatsApp receipt URL
+                const orderMessage = generateWhatsAppOrderMessage({
+                  cart,
+                  formData: {
+                    ...formData,
+                    paymentInfo: `Paid Online via Razorpay (Txn ID: ${paymentResponse.razorpayPaymentId})`,
+                  },
+                  total,
+                  orderNumber: dbOrder?.orderNumber,
+                });
+                const whatsappUrl = getWhatsAppOrderUrl(orderMessage);
+
+                addToast("🎉 Payment successful! Your order has been placed.", "success", 5000);
+
+                setPlacedOrderSummary({
+                  items: [...cart],
+                  total,
+                  formData: { ...formData },
+                  whatsappUrl,
+                  orderNumber: dbOrder?.orderNumber,
+                  isOnlinePaid: true,
+                  paymentId: paymentResponse.razorpayPaymentId,
+                  razorpayOrderId: paymentResponse.razorpayOrderId,
+                });
+                setOrderPlaced(true);
+                clearCart();
+              } else {
+                addToast(verifyRes.message || "Payment verification failed", "error", 5000);
+              }
+            } catch (verErr) {
+              console.error("Verification error:", verErr);
+              addToast(verErr.message || "Payment verification error", "error", 5000);
+            } finally {
+              setIsSubmitting(false);
+            }
+          },
+          onFailure: (err) => {
+            console.error("Razorpay payment error:", err);
+            addToast(`Payment failed: ${err.description || "Transaction cancelled"}`, "error", 5000);
+            setIsSubmitting(false);
+          },
+          onDismiss: () => {
+            addToast("Payment cancelled or window closed. You can retry anytime.", "info", 4000);
+            setIsSubmitting(false);
+          },
+        });
+      } catch (err) {
+        console.error("Online payment initialization error:", err);
+        addToast(err.message || "Failed to initialize payment gateway", "error", 5000);
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // ── 2. CASH ON DELIVERY / WHATSAPP FLOW (ORIGINAL FLOW PRESERVED) ────────
     let dbOrder = null;
     try {
       // Step 1: Create or find customer by phone
@@ -170,6 +309,7 @@ function Checkout() {
       formData: { ...formData },
       whatsappUrl,
       orderNumber: dbOrder?.orderNumber,
+      isOnlinePaid: false,
     });
     setOrderPlaced(true);
     clearCart();
@@ -177,18 +317,49 @@ function Checkout() {
 
   // If order is completed
   if (orderPlaced && placedOrderSummary) {
-    const { formData: customer, total: orderTotal, whatsappUrl } = placedOrderSummary;
+    const {
+      formData: customer,
+      total: orderTotal,
+      whatsappUrl,
+      isOnlinePaid,
+      paymentId,
+      orderNumber,
+    } = placedOrderSummary;
 
     return (
       <div className="checkout-page-container">
         <div className="order-success-card">
-          <div className="success-icon-badge">🎉</div>
-          <h1 className="success-title">Order Sent to WhatsApp!</h1>
+          <div className="success-icon-badge">{isOnlinePaid ? "✅" : "🎉"}</div>
+          <h1 className="success-title">
+            {isOnlinePaid ? "Payment Verified & Order Confirmed!" : "Order Sent to WhatsApp!"}
+          </h1>
           <p className="success-subtitle">
-            Thank you, <strong>{customer.fullName}</strong>. Your order has been formatted and opened in WhatsApp for instant bakery confirmation.
+            {isOnlinePaid ? (
+              <>
+                Thank you, <strong>{customer.fullName}</strong>! Your payment was received securely via Razorpay and your bakery order is confirmed.
+              </>
+            ) : (
+              <>
+                Thank you, <strong>{customer.fullName}</strong>. Your order has been formatted and opened in WhatsApp for instant bakery confirmation.
+              </>
+            )}
           </p>
 
           <div className="success-details-box">
+            {orderNumber && (
+              <div className="success-row">
+                <span>Order Reference:</span>
+                <strong className="text-highlight">#{orderNumber}</strong>
+              </div>
+            )}
+            {isOnlinePaid && paymentId && (
+              <div className="success-row">
+                <span>Payment ID:</span>
+                <code style={{ fontSize: "0.88rem", background: "#f1f5f9", padding: "2px 6px", borderRadius: "4px" }}>
+                  {paymentId}
+                </code>
+              </div>
+            )}
             <div className="success-row">
               <span>Delivery Date:</span>
               <strong>{customer.deliveryDate} ({customer.deliveryTime})</strong>
@@ -205,8 +376,18 @@ function Checkout() {
               </strong>
             </div>
             <div className="success-row">
-              <span>Amount Due (COD / UPI on Delivery):</span>
-              <strong className="text-highlight">₹{orderTotal.toFixed(2)}</strong>
+              <span>Payment Status:</span>
+              <strong>
+                {isOnlinePaid ? (
+                  <span style={{ color: "#16a34a", fontWeight: "800" }}>
+                    PAID (₹{orderTotal.toFixed(2)}) 💳
+                  </span>
+                ) : (
+                  <span className="text-highlight">
+                    ₹{orderTotal.toFixed(2)} (Cash on Delivery / UPI)
+                  </span>
+                )}
+              </strong>
             </div>
             {customer.customMessage && (
               <div className="success-row">
@@ -217,15 +398,17 @@ function Checkout() {
           </div>
 
           <div className="success-actions" style={{ display: "flex", gap: "14px", flexWrap: "wrap", justifyContent: "center" }}>
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-primary-blue"
-              style={{ background: "#25d366" }}
-            >
-              💬 Re-open WhatsApp Chat
-            </a>
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary-blue"
+                style={{ background: "#25d366" }}
+              >
+                💬 {isOnlinePaid ? "Share Order Receipt on WhatsApp" : "Re-open WhatsApp Chat"}
+              </a>
+            )}
             <Link to="/" className="btn-secondary-outline">
               ← Return to Home
             </Link>
@@ -463,7 +646,7 @@ function Checkout() {
                   </div>
                 </label>
 
-                {/* Option 2: Online Payment Gateway Placeholder */}
+                {/* Option 2: Online Payment Gateway (Razorpay) */}
                 <label
                   className={`payment-option-card ${
                     formData.paymentMethod === "online_gateway" ? "selected" : ""
@@ -480,38 +663,46 @@ function Checkout() {
                   <div className="payment-card-content">
                     <div className="payment-card-header">
                       <span className="payment-badge-icon">💳</span>
-                      <strong>Online Card / Net Banking / UPI</strong>
-                      <span className="payment-coming-tag">Pre-release Sandbox</span>
+                      <strong>Razorpay Online Payment</strong>
+                      <span className="payment-coming-tag" style={{ background: "#dcfce7", color: "#15803d" }}>
+                        ⚡ Test Mode Active
+                      </span>
                     </div>
                     <p className="payment-card-desc">
-                      Direct online checkout via Razorpay / Stripe integration.
+                      Pay instantly via UPI (GPay / PhonePe / Paytm), Debit/Credit Card, Net Banking & Wallets.
                     </p>
                   </div>
                 </label>
               </div>
 
-              {/* Online Payment Gateway Mock Sandbox Box */}
+              {/* Online Payment Gateway Info Box */}
               {formData.paymentMethod === "online_gateway" && (
-                <div className="gateway-placeholder-box">
+                <div className="gateway-placeholder-box" style={{ background: "#f0fdf4", border: "1.5px solid #86efac" }}>
                   <div className="gateway-header">
-                    <span className="gateway-icon">🔒</span>
+                    <span className="gateway-icon" style={{ fontSize: "1.4rem" }}>🔒</span>
                     <div>
-                      <strong>Secure 256-Bit Encrypted Payment Modal</strong>
-                      <span className="gateway-subtitle">Integration Ready (Razorpay / Stripe)</span>
+                      <strong style={{ color: "#166534" }}>Razorpay 256-Bit Secure Payment Gateway</strong>
+                      <span className="gateway-subtitle" style={{ color: "#15803d" }}>
+                        Official Razorpay Checkout • Test Mode Sandbox Active
+                      </span>
                     </div>
                   </div>
-                  <div className="gateway-mock-inputs">
-                    <div className="mock-card-field">
-                      <span>Card Number</span>
-                      <div className="mock-input-field">•••• •••• •••• 4242 <span className="card-brand-logo">💳 VISA / MC / RuPay</span></div>
-                    </div>
-                    <div className="mock-row-2">
-                      <div className="mock-input-field">MM / YY</div>
-                      <div className="mock-input-field">CVV •••</div>
-                    </div>
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", margin: "6px 0" }}>
+                    <span style={{ fontSize: "0.82rem", background: "#ffffff", border: "1px solid #bbf7d0", padding: "4px 10px", borderRadius: "6px", fontWeight: "600", color: "#166534" }}>
+                      📱 UPI & QR
+                    </span>
+                    <span style={{ fontSize: "0.82rem", background: "#ffffff", border: "1px solid #bbf7d0", padding: "4px 10px", borderRadius: "6px", fontWeight: "600", color: "#166534" }}>
+                      💳 Visa / Mastercard / RuPay
+                    </span>
+                    <span style={{ fontSize: "0.82rem", background: "#ffffff", border: "1px solid #bbf7d0", padding: "4px 10px", borderRadius: "6px", fontWeight: "600", color: "#166534" }}>
+                      🏦 Net Banking
+                    </span>
+                    <span style={{ fontSize: "0.82rem", background: "#ffffff", border: "1px solid #bbf7d0", padding: "4px 10px", borderRadius: "6px", fontWeight: "600", color: "#166534" }}>
+                      👛 Wallets
+                    </span>
                   </div>
-                  <p className="gateway-notice-text">
-                    ℹ️ Live merchant secrets will be connected in Phase 3 backend integration.
+                  <p className="gateway-notice-text" style={{ color: "#166534", margin: "0", fontSize: "0.82rem" }}>
+                    ℹ️ Clicking <strong>Pay Now</strong> will open the Razorpay secure popup for test card/UPI payment.
                   </p>
                 </div>
               )}
@@ -519,9 +710,18 @@ function Checkout() {
 
             {/* Submit Actions */}
             <div className="form-submit-row">
-              <button type="submit" className="btn-primary-blue btn-lg btn-block">
-                {formData.paymentMethod === "online_gateway"
-                  ? `🔒 Pay ₹${total.toFixed(2)} & Send Order`
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="btn-primary-blue btn-lg btn-block"
+                style={{
+                  background: formData.paymentMethod === "online_gateway" ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : undefined,
+                }}
+              >
+                {isSubmitting
+                  ? "⏳ Processing..."
+                  : formData.paymentMethod === "online_gateway"
+                  ? `💳 Pay Now (₹${total.toFixed(2)})`
                   : `💬 Order via WhatsApp (₹${total.toFixed(2)})`}
               </button>
               <Link to="/cart" className="link-back-to-cart">

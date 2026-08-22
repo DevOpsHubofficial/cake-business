@@ -146,3 +146,10 @@ export const getOrderItemsByOrderId = async (orderId) => {
     return authFetch(`${API_BASE_URL}/order-items/order/${orderId}`);
 };
 
+export {
+    getRazorpayConfig,
+    createRazorpayOrder,
+    verifyRazorpayPayment
+} from "./paymentService";
+
+

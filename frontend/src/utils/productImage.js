@@ -12,7 +12,7 @@ const localProductImages = {
   11: "/images/products/chocolate-cupcake.jpg",
   12: "/images/products/chocolate-cupcake.jpg",
   13: "/images/products/chocolate-cupcake.jpg",
-  14: "/images/products/gift-box.jpg",
+  14: "/images/products/chocolate-brownie.jpg",
   15: "/images/products/wedding-cake.jpg"
 };
 

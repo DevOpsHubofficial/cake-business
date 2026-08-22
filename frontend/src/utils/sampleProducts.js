@@ -114,7 +114,7 @@ export const SAMPLE_PRODUCTS = [
     eggless: true,
     available: true,
     featured: false,
-    imageUrl: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&w=800&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1515037893149-de7f840978e2?auto=format&fit=crop&w=800&q=80",
     category: { id: 2, name: "Brownies" }
   },
   {

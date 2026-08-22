@@ -11,6 +11,7 @@ import {
   verifyRazorpayPayment,
 } from "../services/api";
 import { openRazorpayModal } from "../utils/razorpay";
+import { saveCustomerOrder } from "../utils/orderStorage";
 
 function Checkout() {
   const { cart, total, clearCart } = useCart();
@@ -193,6 +194,24 @@ function Checkout() {
 
                 addToast("🎉 Payment successful! Your order has been placed.", "success", 5000);
 
+                saveCustomerOrder({
+                  orderNumber: dbOrder?.orderNumber,
+                  dbOrderId: dbOrder?.id,
+                  items: [...cart],
+                  total,
+                  status: "CONFIRMED",
+                  deliveryAddress: formData.landmark
+                    ? `${formData.address.trim()}, Near: ${formData.landmark.trim()}`
+                    : formData.address.trim(),
+                  deliveryDate: formData.deliveryDate,
+                  deliveryTime: formData.deliveryTime,
+                  paymentMethod: "Razorpay Online (Paid)",
+                  isOnlinePaid: true,
+                  paymentId: paymentResponse.razorpayPaymentId,
+                  customerName: formData.fullName.trim(),
+                  customerPhone: formData.phone.trim(),
+                });
+
                 setPlacedOrderSummary({
                   items: [...cart],
                   total,
@@ -301,6 +320,24 @@ function Checkout() {
 
     // 4. Trigger success toast
     addToast("Order placed successfully! Opening WhatsApp...", "success", 4500);
+
+    // Save order snapshot locally so customer can track in "My Orders"
+    saveCustomerOrder({
+      orderNumber: dbOrder?.orderNumber,
+      dbOrderId: dbOrder?.id,
+      items: [...cart],
+      total,
+      status: "CONFIRMED",
+      deliveryAddress: formData.landmark
+        ? `${formData.address.trim()}, Near: ${formData.landmark.trim()}`
+        : formData.address.trim(),
+      deliveryDate: formData.deliveryDate,
+      deliveryTime: formData.deliveryTime,
+      paymentMethod: "Cash on Delivery / UPI via WhatsApp",
+      isOnlinePaid: false,
+      customerName: formData.fullName.trim(),
+      customerPhone: formData.phone.trim(),
+    });
 
     // 5. Save order summary snapshot and transition to order confirmation view
     setPlacedOrderSummary({

@@ -38,45 +38,52 @@ const authFetch = async (url, options = {}) => {
 };
 
 
+import { SAMPLE_PRODUCTS, SAMPLE_CATEGORIES } from "../utils/sampleProducts";
+
 export const getProducts = async () => {
-
-    const response = await fetch(
-        `${API_BASE_URL}/products`
-    );
-
-    if (!response.ok) {
-        throw new Error("Failed to fetch products");
+    try {
+        const response = await fetch(`${API_BASE_URL}/products`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data;
+            }
+        }
+    } catch (err) {
+        console.warn("Backend products fetch failed or empty, using curated sample products:", err);
     }
-
-    return response.json();
+    return SAMPLE_PRODUCTS;
 };
 
 
 export const getProductById = async (id) => {
-
-    const response = await fetch(
-        `${API_BASE_URL}/products/${id}`
-    );
-
-    if (!response.ok) {
-        throw new Error("Failed to fetch product");
+    try {
+        const response = await fetch(`${API_BASE_URL}/products/${id}`);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (err) {
+        console.warn("Backend product by ID failed, searching sample products:", err);
     }
-
-    return response.json();
+    const found = SAMPLE_PRODUCTS.find((p) => String(p.id) === String(id));
+    if (found) return found;
+    throw new Error("Product not found");
 };
 
 
 export const getCategories = async () => {
-
-    const response = await fetch(
-        `${API_BASE_URL}/categories`
-    );
-
-    if (!response.ok) {
-        throw new Error("Failed to fetch categories");
+    try {
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                return data;
+            }
+        }
+    } catch (err) {
+        console.warn("Backend categories fetch failed or empty, using curated categories:", err);
     }
-
-    return response.json();
+    return SAMPLE_CATEGORIES;
 };
 
 export const createGuestCustomer = async (customerData) => {

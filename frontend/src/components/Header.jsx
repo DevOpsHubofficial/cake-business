@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
 function Header() {
   const { cart } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Total quantity calculation
   const totalQuantity = (cart || []).reduce(
@@ -19,6 +22,20 @@ function Header() {
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
+    setIsSearchOpen(false);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?q=${encodeURIComponent(searchQuery.trim())}#products`);
+      closeMobileMenu();
+    }
+  };
+
+  const handleCategoryNav = (categoryName) => {
+    navigate(`/?cat=${encodeURIComponent(categoryName)}#products`);
+    closeMobileMenu();
   };
 
   return (
@@ -37,29 +54,69 @@ function Header() {
         <nav className="desktop-nav" aria-label="Main Navigation">
           <Link
             to="/"
-            className={`nav-link ${location.pathname === "/" ? "active" : ""}`}
+            className={`nav-link ${location.pathname === "/" && !location.search ? "active" : ""}`}
           >
             Home
           </Link>
-          <a href="/#products" className="nav-link">
+          <button
+            type="button"
+            className="nav-link nav-btn-link"
+            onClick={() => handleCategoryNav("Cakes")}
+          >
             Cakes
-          </a>
-          <a href="/#products" className="nav-link">
+          </button>
+          <button
+            type="button"
+            className="nav-link nav-btn-link"
+            onClick={() => handleCategoryNav("Brownies")}
+          >
             Brownies
-          </a>
-          <a href="/#products" className="nav-link">
+          </button>
+          <button
+            type="button"
+            className="nav-link nav-btn-link"
+            onClick={() => handleCategoryNav("Cupcakes")}
+          >
             Cupcakes
+          </button>
+          <a href="/#about" className="nav-link">
+            About Us
           </a>
           <Link
-            to="/cart"
-            className={`nav-link ${location.pathname === "/cart" ? "active" : ""}`}
+            to="/orders"
+            className={`nav-link ${location.pathname === "/orders" ? "active" : ""}`}
           >
-            Order Now
+            My Orders
           </Link>
         </nav>
 
-        {/* Actions (Cart & Mobile Toggle) */}
+        {/* Search Bar (Desktop) */}
+        <form className="header-search-form desktop-search" onSubmit={handleSearchSubmit}>
+          <input
+            type="text"
+            placeholder="Search cakes, brownies..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="header-search-input"
+            aria-label="Search products"
+          />
+          <button type="submit" className="header-search-btn" aria-label="Submit search">
+            🔍
+          </button>
+        </form>
+
+        {/* Actions (Search toggle on mobile, Cart & Hamburger Toggle) */}
         <div className="header-actions">
+          {/* Mobile search toggle */}
+          <button
+            type="button"
+            className="mobile-search-toggle-btn"
+            onClick={() => setIsSearchOpen((prev) => !prev)}
+            aria-label="Toggle search bar"
+          >
+            🔍
+          </button>
+
           <Link
             to="/cart"
             className="cart-action-btn"
@@ -88,39 +145,94 @@ function Header() {
         </div>
       </div>
 
+      {/* Expandable Mobile Search Bar */}
+      {isSearchOpen && (
+        <div className="mobile-search-bar-wrap">
+          <form className="header-search-form mobile-search-form" onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              placeholder="Search cakes, brownies, cupcakes..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="header-search-input"
+              autoFocus
+              aria-label="Search products"
+            />
+            <button type="submit" className="header-search-btn">
+              🔍 Search
+            </button>
+            <button
+              type="button"
+              className="mobile-search-close-btn"
+              onClick={() => setIsSearchOpen(false)}
+            >
+              ✕
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* Mobile Drawer Navigation */}
       <div
         className={`mobile-nav-drawer ${mobileMenuOpen ? "drawer-open" : ""}`}
       >
         <div className="mobile-nav-content">
+          {/* Mobile Search input inside drawer */}
+          <form className="drawer-search-form" onSubmit={handleSearchSubmit}>
+            <input
+              type="text"
+              placeholder="🔍 Search entire menu..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="drawer-search-input"
+            />
+            <button type="submit" className="drawer-search-submit">
+              Search
+            </button>
+          </form>
+
           <Link
             to="/"
-            className={`mobile-nav-link ${location.pathname === "/" ? "active" : ""}`}
+            className={`mobile-nav-link ${location.pathname === "/" && !location.search ? "active" : ""}`}
             onClick={closeMobileMenu}
           >
             🏠 Home
           </Link>
-          <a
-            href="/#products"
-            className="mobile-nav-link"
-            onClick={closeMobileMenu}
+          <button
+            type="button"
+            className="mobile-nav-link text-left"
+            onClick={() => handleCategoryNav("Cakes")}
           >
-            🎂 Cakes & Desserts
-          </a>
-          <a
-            href="/#products"
-            className="mobile-nav-link"
-            onClick={closeMobileMenu}
+            🎂 Cakes & Pastries
+          </button>
+          <button
+            type="button"
+            className="mobile-nav-link text-left"
+            onClick={() => handleCategoryNav("Brownies")}
           >
             🍫 Signature Brownies
-          </a>
+          </button>
+          <button
+            type="button"
+            className="mobile-nav-link text-left"
+            onClick={() => handleCategoryNav("Cupcakes")}
+          >
+            🧁 Gourmet Cupcakes
+          </button>
           <a
-            href="/#products"
+            href="/#about"
             className="mobile-nav-link"
             onClick={closeMobileMenu}
           >
-            🧁 Cupcakes
+            🌟 About Us
           </a>
+          <Link
+            to="/orders"
+            className={`mobile-nav-link ${location.pathname === "/orders" ? "active" : ""}`}
+            onClick={closeMobileMenu}
+          >
+            📜 My Orders
+          </Link>
           <Link
             to="/cart"
             className={`mobile-nav-link ${location.pathname === "/cart" ? "active" : ""}`}

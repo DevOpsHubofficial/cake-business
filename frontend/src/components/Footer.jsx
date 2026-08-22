@@ -34,13 +34,16 @@ function Footer() {
               <a href="/#products">Our Collection</a>
             </li>
             <li>
-              <a href="/#features">Why Choose Us</a>
+              <a href="/#about">About Brownie Hub</a>
             </li>
             <li>
-              <Link to="/cart">My Shopping Cart</Link>
+              <Link to="/orders">📜 My Orders</Link>
             </li>
             <li>
-              <Link to="/admin">👑 Admin Dashboard</Link>
+              <Link to="/cart">🛒 My Shopping Cart</Link>
+            </li>
+            <li>
+              <Link to="/admin">👑 Admin Portal</Link>
             </li>
           </ul>
         </div>

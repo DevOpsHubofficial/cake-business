@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ProductCard";
 import CategoryFilter from "../components/CategoryFilter";
 import { getProducts, getCategories } from "../services/api";
@@ -7,11 +7,34 @@ import { useCart } from "../context/CartContext";
 
 function Home() {
   const { addToCart } = useCart();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Sync search / category from URL params
+  useEffect(() => {
+    const q = searchParams.get("q");
+    const cat = searchParams.get("cat");
+
+    if (q) {
+      setSearchQuery(q);
+      setSelectedCategory("ALL");
+    }
+
+    if (cat && categories.length > 0) {
+      const match = categories.find((c) =>
+        c.name.toLowerCase().includes(cat.toLowerCase())
+      );
+      if (match) {
+        setSelectedCategory(match.id);
+        setSearchQuery("");
+      }
+    }
+  }, [searchParams, categories]);
 
   useEffect(() => {
     let isMounted = true;
@@ -48,7 +71,7 @@ function Home() {
 
         const availableCategories = Array.isArray(categoriesData)
           ? categoriesData.filter(
-              (c) => c.active !== false && availableCategoryIds.has(c.id)
+              (c) => c.active !== false && (availableCategoryIds.size === 0 || availableCategoryIds.has(c.id))
             )
           : [];
 
@@ -69,20 +92,46 @@ function Home() {
     };
   }, []);
 
-  // Filtered Products
+  // Filtered Products by Category AND Search Query
   const filteredProducts = useMemo(() => {
-    if (selectedCategory === "ALL") {
-      return products;
+    let result = products;
+
+    // 1. Filter by category
+    if (selectedCategory !== "ALL") {
+      result = result.filter(
+        (product) => product.category && product.category.id === selectedCategory
+      );
     }
-    return products.filter(
-      (product) => product.category && product.category.id === selectedCategory
-    );
-  }, [products, selectedCategory]);
+
+    // 2. Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (product) =>
+          product.name?.toLowerCase().includes(query) ||
+          product.description?.toLowerCase().includes(query) ||
+          product.category?.name?.toLowerCase().includes(query)
+      );
+    }
+
+    return result;
+  }, [products, selectedCategory, searchQuery]);
 
   // Featured Bestsellers
   const featuredProducts = useMemo(() => {
     return products.filter((product) => product.featured === true);
   }, [products]);
+
+  const handleCategorySelect = (catId) => {
+    setSelectedCategory(catId);
+    setSearchQuery("");
+    setSearchParams({});
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSearchParams({});
+  };
 
   return (
     <div className="home-container">
@@ -110,7 +159,7 @@ function Home() {
               <a href="#products" className="btn-primary-blue">
                 🍰 Explore Fresh Menu
               </a>
-              <a href="#features" className="btn-secondary-outline">
+              <a href="#about" className="btn-secondary-outline">
                 🌟 Why Choose Us
               </a>
             </div>
@@ -163,9 +212,9 @@ function Home() {
       </section>
 
       {/* =========================================================
-          BESTSELLERS / FEATURED SECTION
+          BESTSELLERS / FEATURED SECTION (Only show when not actively searching)
       ========================================================= */}
-      {featuredProducts.length > 0 && (
+      {!searchQuery && selectedCategory === "ALL" && featuredProducts.length > 0 && (
         <section className="featured-section">
           <div className="section-header-block text-center">
             <span className="section-badge">CUSTOMER PICKS</span>
@@ -188,22 +237,57 @@ function Home() {
       )}
 
       {/* =========================================================
-          FULL COLLECTION & FILTER SECTION
+          FULL COLLECTION, SEARCH & FILTER SECTION
       ========================================================= */}
       <section id="products" className="collection-section">
         <div className="section-header-block text-center">
           <span className="section-badge">FRESH FROM THE OVEN</span>
-          <h2 className="section-title">Explore Our Full Menu</h2>
+          <h2 className="section-title">
+            {searchQuery ? `Search Results for "${searchQuery}"` : "Explore Our Full Menu"}
+          </h2>
           <p className="section-subtitle">
             Choose by category or browse our handcrafted cakes, fudgy brownies, and sweet cupcakes.
           </p>
+        </div>
+
+        {/* In-page Search Bar */}
+        <div className="inline-search-wrapper">
+          <div className="inline-search-box">
+            <span className="search-icon">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by bake name, chocolate, berry, size..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="inline-search-input"
+              aria-label="Search collection"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={handleClearSearch}
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <div className="search-active-pill">
+              <span>Showing results for: <strong>"{searchQuery}"</strong></span>
+              <button type="button" onClick={handleClearSearch} className="clear-filter-link">
+                Clear filter
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Category Pills Filter */}
         <CategoryFilter
           categories={categories}
           selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
+          onCategoryChange={handleCategorySelect}
         />
 
         {/* Product Grid Area */}
@@ -246,16 +330,24 @@ function Home() {
           </div>
         ) : (
           <div className="empty-collection-card">
-            <span className="empty-emoji">🍰</span>
-            <h3>No bakes found in this category</h3>
-            <p>We are constantly preparing new recipes. Please check other categories!</p>
-            {selectedCategory !== "ALL" && (
+            <span className="empty-emoji">🧁</span>
+            <h3>No bakes found</h3>
+            <p>
+              {searchQuery
+                ? `No sweet treats matched "${searchQuery}". Try searching for 'chocolate', 'cake', or 'brownie'.`
+                : "We are constantly preparing new recipes for this category. Please check back soon!"}
+            </p>
+            {(selectedCategory !== "ALL" || searchQuery) && (
               <button
                 type="button"
                 className="btn-secondary-outline"
-                onClick={() => setSelectedCategory("ALL")}
+                onClick={() => {
+                  setSelectedCategory("ALL");
+                  setSearchQuery("");
+                  setSearchParams({});
+                }}
               >
-                View All Delights
+                ✨ View All Delights
               </button>
             )}
           </div>
@@ -263,12 +355,15 @@ function Home() {
       </section>
 
       {/* =========================================================
-          FEATURES & TRUST SECTION
+          ABOUT / FEATURES & TRUST SECTION
       ========================================================= */}
-      <section id="features" className="features-section">
+      <section id="about" className="features-section">
         <div className="section-header-block text-center">
-          <span className="section-badge">THE BROWNIE HUB PROMISE</span>
-          <h2 className="section-title">Why Our Treats Stand Apart</h2>
+          <span className="section-badge">ABOUT BROWNIE HUB</span>
+          <h2 className="section-title">Handcrafted With Passion Since Day One</h2>
+          <p className="section-subtitle">
+            At Brownie Hub, baking is not just a craft — it is our passion. Every cake and brownie is baked from scratch with genuine love.
+          </p>
         </div>
 
         <div className="features-grid-3">

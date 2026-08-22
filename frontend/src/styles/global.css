@@ -338,7 +338,17 @@ button {
   align-items: center;
   justify-content: center;
   padding: 4px;
-  color: var(--text-muted);
+  color: var(--text-muted, #64748b);
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+
+.header-search-btn:hover {
+  color: var(--primary-800, #1e293b);
+  transform: scale(1.08);
+}
+
+.header-search-svg {
+  display: block;
 }
 
 /* Live Search Suggestions Dropdown */
@@ -3109,6 +3119,18 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.footer-email-link {
+  color: var(--yellow-300);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.footer-email-link:hover {
+  color: #ffffff;
+  text-decoration: underline;
 }
 
 .footer-bottom-bar {

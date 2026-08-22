@@ -42,9 +42,6 @@ function Footer() {
             <li>
               <Link to="/cart">🛒 My Shopping Cart</Link>
             </li>
-            <li>
-              <Link to="/admin">👑 Admin Portal</Link>
-            </li>
           </ul>
         </div>
 
@@ -83,6 +80,12 @@ function Footer() {
             <span>Order on WhatsApp</span>
           </a>
           <div className="footer-contact-details">
+            <div className="contact-item">
+              <span className="contact-icon">📧</span>
+              <a href="mailto:contact@browniehub.com" className="footer-email-link">
+                contact@browniehub.com
+              </a>
+            </div>
             <div className="contact-item">
               <span className="contact-icon">📍</span>
               <span>Bangalore, Karnataka, India</span>

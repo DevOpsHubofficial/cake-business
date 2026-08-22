@@ -23,16 +23,21 @@ function Home() {
     if (q) {
       setSearchQuery(q);
       setSelectedCategory("ALL");
+    } else if (!cat) {
+      setSearchQuery("");
     }
 
     if (cat && categories.length > 0) {
       const match = categories.find((c) =>
-        c.name.toLowerCase().includes(cat.toLowerCase())
+        c.name.toLowerCase().trim().includes(cat.toLowerCase().trim()) ||
+        cat.toLowerCase().trim().includes(c.name.toLowerCase().trim())
       );
       if (match) {
         setSelectedCategory(match.id);
         setSearchQuery("");
       }
+    } else if (!cat && !q) {
+      // If no query parameters, maintain current or reset to ALL if needed
     }
   }, [searchParams, categories]);
 
@@ -250,38 +255,17 @@ function Home() {
           </p>
         </div>
 
-        {/* In-page Search Bar */}
-        <div className="inline-search-wrapper">
-          <div className="inline-search-box">
-            <span className="search-icon">🔍</span>
-            <input
-              type="text"
-              placeholder="Search by bake name, chocolate, berry, size..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="inline-search-input"
-              aria-label="Search collection"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                className="search-clear-btn"
-                onClick={handleClearSearch}
-                aria-label="Clear search"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          {searchQuery && (
+        {/* Active Search indicator with Clear Button (when header search is active) */}
+        {searchQuery && (
+          <div className="inline-search-wrapper">
             <div className="search-active-pill">
-              <span>Showing results for: <strong>"{searchQuery}"</strong></span>
+              <span>Showing search results for: <strong>"{searchQuery}"</strong> ({filteredProducts.length} {filteredProducts.length === 1 ? "bake" : "bakes"} found)</span>
               <button type="button" onClick={handleClearSearch} className="clear-filter-link">
-                Clear filter
+                ✕ Clear Search
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Category Pills Filter */}
         <CategoryFilter

@@ -13,22 +13,25 @@ import {
 import { openRazorpayModal } from "../utils/razorpay";
 import { saveCustomerOrder } from "../utils/orderStorage";
 
+import { useCustomerAuth } from "../context/CustomerAuthContext";
+
 function Checkout() {
   const { cart, total, clearCart } = useCart();
   const { addToast } = useToast();
+  const { customer, isAuthenticated } = useCustomerAuth();
 
-  // Form State
-  const [formData, setFormData] = useState({
-    fullName: "",
-    phone: "",
-    address: "",
+  // Form State (Auto-filled with customer details if logged in)
+  const [formData, setFormData] = useState(() => ({
+    fullName: customer?.name || "",
+    phone: customer?.phone || "",
+    address: customer?.address || "",
     landmark: "",
     deliveryDate: "",
     deliveryTime: "",
     customMessage: "",
     instructions: "",
     paymentMethod: "whatsapp_cod", // 'whatsapp_cod' | 'online_gateway'
-  });
+  }));
 
   // Errors & Order State
   const [errors, setErrors] = useState({});

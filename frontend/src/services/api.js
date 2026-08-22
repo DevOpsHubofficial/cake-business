@@ -153,6 +153,108 @@ export const getOrderItemsByOrderId = async (orderId) => {
     return authFetch(`${API_BASE_URL}/order-items/order/${orderId}`);
 };
 
+// ── Customer Auth Helpers ─────────────────────────────────────────────────────
+
+export const customerRegister = async (customerData) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/customer-auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(customerData),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error || data.message || `Registration failed (HTTP ${response.status})`);
+        }
+        return data;
+    } catch (err) {
+        if (err.name === "TypeError" && err.message.includes("Failed to fetch")) {
+            throw new Error("Unable to connect to the bakery server. Please ensure the backend server is running.");
+        }
+        throw err;
+    }
+};
+
+export const customerLogin = async (email, password) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/customer-auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: email?.trim().toLowerCase(), password }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error || data.message || "Invalid email or password");
+        }
+        return data;
+    } catch (err) {
+        if (err.name === "TypeError" && err.message.includes("Failed to fetch")) {
+            throw new Error("Unable to connect to the bakery server. Please ensure the backend server is running.");
+        }
+        throw err;
+    }
+};
+
+export const getCustomerProfile = async (token) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/customer-auth/me`, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        if (!response.ok) {
+            throw new Error("Session expired or invalid");
+        }
+        return response.json();
+    } catch (err) {
+        throw err;
+    }
+};
+
+export const updateCustomerProfile = async (token, updates) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/customer-auth/profile`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(updates),
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error || err.message || "Failed to update profile");
+        }
+        return response.json();
+    } catch (err) {
+        if (err.name === "TypeError" && err.message.includes("Failed to fetch")) {
+            throw new Error("Unable to connect to the server.");
+        }
+        throw err;
+    }
+};
+
+export const getCustomerOrdersApi = async (token) => {
+    try {
+        const response = await fetch(`${API_BASE_URL}/customer-auth/orders`, {
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        if (!response.ok) {
+            throw new Error("Failed to fetch customer orders");
+        }
+        return response.json();
+    } catch (err) {
+        if (err.name === "TypeError" && err.message.includes("Failed to fetch")) {
+            return [];
+        }
+        throw err;
+    }
+};
+
 export {
     getRazorpayConfig,
     createRazorpayOrder,

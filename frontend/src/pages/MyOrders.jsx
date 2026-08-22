@@ -1,16 +1,61 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getCustomerOrders } from "../utils/orderStorage";
+import { getCustomerOrders as getLocalCustomerOrders } from "../utils/orderStorage";
+import { useCustomerAuth } from "../context/CustomerAuthContext";
+import { getCustomerOrdersApi } from "../services/api";
 
 function MyOrders() {
+  const { token, isAuthenticated } = useCustomerAuth();
   const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   useEffect(() => {
-    const loadedOrders = getCustomerOrders();
-    setOrders(loadedOrders);
-  }, []);
+    let isMounted = true;
+    const fetchAllOrders = async () => {
+      const localOrders = getLocalCustomerOrders();
+      if (isAuthenticated && token) {
+        try {
+          setIsLoadingOrders(true);
+          const remoteOrders = await getCustomerOrdersApi(token);
+          if (isMounted && Array.isArray(remoteOrders)) {
+            // Map remote DB orders into standardized display structure
+            const formattedRemote = remoteOrders.map((ro) => ({
+              orderNumber: ro.orderNumber,
+              orderDate: ro.orderDate,
+              status: ro.status,
+              total: ro.totalAmount,
+              deliveryAddress: ro.deliveryAddress,
+              paymentMethod: ro.notes?.includes("Razorpay") ? "Paid Online (Razorpay)" : "Cash on Delivery",
+              items: [],
+            }));
+
+            // Merge avoiding duplicate order numbers
+            const existingNums = new Set(localOrders.map((o) => o.orderNumber));
+            const merged = [...localOrders];
+            formattedRemote.forEach((ro) => {
+              if (!existingNums.has(ro.orderNumber)) {
+                merged.push(ro);
+              }
+            });
+            setOrders(merged);
+            return;
+          }
+        } catch (err) {
+          console.warn("Could not fetch remote customer orders:", err);
+        } finally {
+          if (isMounted) setIsLoadingOrders(false);
+        }
+      }
+      if (isMounted) setOrders(localOrders);
+    };
+
+    fetchAllOrders();
+    return () => {
+      isMounted = false;
+    };
+  }, [token, isAuthenticated]);
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =

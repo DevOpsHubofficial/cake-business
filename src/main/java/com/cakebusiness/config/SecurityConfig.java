@@ -40,8 +40,15 @@ public class SecurityConfig {
                 // Allow OPTIONS preflight requests
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                // Public auth endpoint
+                // Public auth endpoints
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/customer-auth/login").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/customer-auth/register").permitAll()
+
+                // Customer-authenticated endpoints
+                .requestMatchers("/api/customer-auth/me").hasRole("CUSTOMER")
+                .requestMatchers("/api/customer-auth/profile").hasRole("CUSTOMER")
+                .requestMatchers("/api/customer-auth/orders").hasRole("CUSTOMER")
 
                 // Public customer-facing APIs (no auth required)
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
